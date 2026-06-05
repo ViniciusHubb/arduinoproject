@@ -1,8 +1,38 @@
-# 🔐 Sistema de Controle de Acesso IoT
+# 🔐 TOI — Sistema de Controle de Acesso IoT
+
+## 📌 Identificação
+
+**Projeto:** TOI (Controle de Acesso IoT)  
+**Curso:** CST em Análise e Desenvolvimento de Sistemas — 4º Período  
+**Componente:** Projeto Integrador — IoT  
+
+**Equipe:**
+- Vinicius Oliveira  
+- Diogo Nascimento  
+- Maira Lourenço  
+- Pedro Juan  
+- Carlos Machado  
+- Wslany Lima  
+- Gustavo Henrique  
+- Vinicius dos Santos  
+- Miguel Veloso  
+
+---
+
+## 🔗 Links do Projeto
+
+- 🔹 Repositório Backend: *([adicionar link](https://github.com/diogocoding/testiot-development-backc-))*
+- 🔹 Repositório Frontend: *([adicionar link](https://github.com/diogocoding/testiot-development-front))*
+- 🔹 Apresentação (slides + PDF): *(em breve)*
+- 🔹 Sistema em funcionamento / vídeo demo: *(em breve)*
+- 🔹 Dashboard / Backend: ocultado
+
+---
 
 ## 📌 Descrição
 
 Sistema de controle de acesso embarcado utilizando ESP32‑C3, RFID (RC522) e sensor ultrassônico para detecção de presença.  
+
 O sistema autentica usuários através de um backend remoto via HTTP, controla o acesso físico por servo motor, fornece feedback visual com LEDs e display LCD e mantém comunicação contínua com a nuvem.
 
 O sistema é resiliente, com reconexão automática de Wi‑Fi e comportamento seguro quando offline.
@@ -14,12 +44,38 @@ O sistema é resiliente, com reconexão automática de Wi‑Fi e comportamento s
 - ✅ Detecção inteligente de presença (ultrassônico com filtro e estabilidade)
 - ✅ Autenticação via RFID com validação no backend
 - ✅ Controle de acesso físico (servo motor)
-- ✅ Interface com usuário (display LCD 1602)
+- ✅ Interface com usuário (LCD 1602)
 - ✅ Feedback visual com LEDs RGB (NeoPixel)
 - ✅ Envio de dados via HTTP (JSON)
 - ✅ Heartbeat para monitoramento do dispositivo
 - ✅ Reconexão automática de Wi‑Fi
-- ✅ Bloqueio de leitura sem conexão
+- ✅ Bloqueio de acesso sem conexão
+
+---
+
+## 📋 Documento de Requisitos Simplificado
+
+### 🔹 Problema
+Controle de acesso ineficiente e não automatizado em ambientes institucionais.
+
+### 🔹 Escopo (MVP)
+Sistema IoT capaz de autenticar usuários via RFID, validar acesso em backend e controlar uma entrada física.
+
+### 🔹 Requisitos Funcionais (RF)
+- RF01: Detectar presença com sensor ultrassônico
+- RF02: Ler cartão RFID
+- RF03: Enviar UID para o backend
+- RF04: Receber autorização
+- RF05: Acionar servo para liberar acesso
+- RF06: Exibir status no LCD
+- RF07: Enviar heartbeat para monitoramento
+
+### 🔹 Requisitos Não Funcionais (RNF)
+- RNF01: Tempo de resposta ≤ 2 segundos
+- RNF02: Reconexão automática de Wi‑Fi
+- RNF03: Operação segura offline (bloqueio)
+- RNF04: Intervalo de leitura do sensor ≈ 200ms
+- RNF05: Comunicação HTTP estruturada em JSON
 
 ---
 
@@ -35,63 +91,51 @@ ESP32 → HTTP POST → Backend → Autorização
 ## 🔌 Hardware Utilizado
 
 - ESP32‑C3 Mini  
-- Módulo RFID RC522  
-- Sensor ultrassônico HC-SR04  
-- Servo motor SG90  
-- Display LCD 1602 (I2C)  
-- LED RGB (NeoPixel - 8 LEDs)  
-- Fonte de alimentação 5V  
+- RFID RC522  
+- HC-SR04  
+- Servo SG90  
+- LCD 1602 I2C  
+- NeoPixel (8 LEDs)  
+- Fonte 5V  
 
 ---
 
-## 🔌 Conexões dos Pinos
+## 🔌 Conexões
 
-| Componente | Pino ESP32 |
-|-----------|-----------|
-| TRIG      | GPIO0     |
-| ECHO      | GPIO10    |
-| RFID SS   | GPIO7     |
-| RFID SCK  | GPIO6     |
-| RFID MOSI | GPIO5     |
-| RFID MISO | GPIO4     |
-| RFID RST  | GPIO2     |
-| LCD SDA   | GPIO8     |
-| LCD SCL   | GPIO9     |
-| Servo     | GPIO1     |
-| LED STRIP | GPIO3     |
+| Componente | Pino |
+|-----------|------|
+| TRIG | GPIO0 |
+| ECHO | GPIO10 |
+| RFID SS | GPIO7 |
+| RFID SCK | GPIO6 |
+| RFID MOSI | GPIO5 |
+| RFID MISO | GPIO4 |
+| RFID RST | GPIO2 |
+| LCD SDA | GPIO8 |
+| LCD SCL | GPIO9 |
+| Servo | GPIO1 |
+| LED | GPIO3 |
 
 ---
 
 ## 🌐 Comunicação com Cloud
 
-### 🔹 Validação de Acesso
-
-**POST** `/api/access/validate`
+### Validação
 
 ```json
+POST /api/access/validate
 {
   "rfidTag": "ID_tag",
-  "deviceToken": "acess_name_arduino"
+  "deviceToken": "device_id"
 }
 ```
 
-Resposta:
+### Heartbeat
 
 ```json
+POST /api/aparelhos/ping
 {
-  "authorized": true
-}
-```
-
----
-
-### 🔹 Heartbeat
-
-**POST** `/api/aparelhos/ping`
-
-```json
-{
-  "deviceToken": "acess_name_arduino"
+  "deviceToken": "device_id"
 }
 ```
 
@@ -99,124 +143,96 @@ Resposta:
 
 ## 📈 Fluxo do Sistema
 
-1. Sensor detecta presença  
-2. LCD exibe instrução  
-3. RFID lê cartão  
-4. ESP envia UID ao backend  
-5. Backend valida acesso  
-6. Sistema executa ação  
-7. ESP envia heartbeat  
+1. Detecta presença  
+2. Ativa LCD  
+3. Solicita cartão  
+4. Lê RFID  
+5. Envia para backend  
+6. Valida acesso  
+7. Executa ação  
+8. Envia heartbeat  
 
 ---
 
 ## 🧠 Inteligência do Sistema
 
-### 🔹 Ultrassônico
+### Ultrassônico
+- Filtro por média  
+- Leitura controlada (~200ms)  
+- Histerese (15cm / 20cm)  
+- Tolerância (~1.5s)  
 
-- Filtro por média de múltiplas leituras
-- Leitura em intervalos (~200ms)
-- Histerese (entrada ≤ 15cm / saída ≥ 20cm)
-- Tolerância temporal (~1.5s)
+### RFID
+- UID padronizado  
+- Validação no backend  
 
-→ evita ruído e oscilações
-
----
-
-### 🔹 RFID
-
-- UID padronizado (hex minúsculo com zero)
-- Validação feita no backend
-- Evita decisões locais
+### Wi‑Fi
+- Reconexão automática  
+- Controle de estado  
 
 ---
 
-### 🔹 Wi‑Fi
-
-- Reconexão automática controlada
-- Evita múltiplas tentativas simultâneas
-- Reset de estado antes de reconectar
-
----
-
-## ⚙️ Configuração do ESP32
-
-```cpp
-const char* ssid = "SEU_WIFI";
-const char* password = "SENHA";
-
-const char* validateUrl = "https://SEU_BACKEND/api/access/validate";
-const char* pingUrl = "https://SEU_BACKEND/api/aparelhos/ping";
-
-const char* deviceToken = "acess_name_arduino";
-```
-
----
-
-## 📊 Interface do Usuário (LCD)
+## 📊 Interface (LCD)
 
 ```
-Sem conexao
-Reconectando
-```
-
-```
-Aproxime o
-cartao
-```
-
-```
-Lendo cartao
-Aguarde
-```
-
-```
+Sem conexao / Reconectando
+Aproxime o cartao
+Lendo cartao / Aguarde
 Acesso liberado
-```
-
-```
 Acesso negado
 ```
 
 ---
 
-## 💡 Feedback Visual (LED)
+## 💡 Feedback (LED)
 
-| Situação | Cor |
-|--------|-----|
+| Estado | Cor |
+|------|----|
 | Aguardando | OFF |
-| Acesso liberado | Verde |
-| Acesso negado | Vermelho |
+| Liberado | Verde |
+| Negado | Vermelho |
 
 ---
 
-## 🛠 Tecnologias Utilizadas
+## 🛠 Tecnologias
 
-- ESP32 (C++)  
-- HTTP / REST  
-- JSON  
-- Node.js (backend)  
-- Docker  
-- I2C, SPI e PWM  
+- ESP32 (C++)
+- HTTP / REST
+- JSON
+- Node.js
+- Docker
+- I2C / SPI / PWM
+
+---
+
+## 🔗 Mapeamento de UCs
+
+| Conceito | UC | Evidência |
+|--------|----|--------|
+| Firmware embarcado | IoT | Código ESP32 |
+| APIs REST | Engenharia de Software | Comunicação HTTP |
+| Cloud | Cloud Computing | Backend |
+| Segurança | Segurança da Informação | Controle de acesso |
 
 ---
 
 ## 🔒 Segurança
 
-- Validação centralizada no backend  
-- Identificação por deviceToken  
-- Bloqueio offline  
+- Credenciais isoladas
+- Comunicação controlada
+- Bloqueio offline
 
 ---
 
-## 💡 Melhorias Futuras
+## 📸 Dossiê de Evidências (em breve)
 
-- Dashboard com gráficos  
-- Banco de dados persistente  
-- Autenticação segura (API Key / JWT)  
-- Modo offline inteligente  
+- Fotos do circuito
+- Logs do Serial Monitor
+- Prints do dashboard
+- Demonstração do sistema
 
 ---
 
 ## 👨‍💻 Autor
 
-Projeto desenvolvido como estudo de sistemas embarcados, IoT e integração com backend.
+Projeto desenvolvido como parte do Projeto Integrador em IoT — SENAC PE.
