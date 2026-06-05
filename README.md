@@ -1,36 +1,50 @@
-Sistema de Controle de Acesso IoT
-📌 Descrição
-Sistema de controle de acesso embarcado utilizando ESP32‑C3, RFID (RC522) e sensor ultrassônico para detecção de presença. O sistema autentica usuários por meio de cartões RFID, controla o acesso físico via servo motor e exibe informações em um display LCD.
-Também realiza envio de logs para a nuvem via HTTP, com funcionamento resiliente mesmo em modo offline.
+# 🔐 Sistema de Controle de Acesso IoT
 
-🚀 Funcionalidades
+## 📌 Descrição
 
-✅ Detecção inteligente de presença (sensor ultrassônico)
-✅ Autenticação via RFID (cartões)
-✅ Controle de acesso físico (servo motor)
-✅ Interface com usuário (display LCD)
-✅ Envio de logs via HTTP
-✅ Funcionamento offline com reconexão automática de Wi-Fi
+Sistema de controle de acesso embarcado utilizando ESP32‑C3, RFID (RC522) e sensor ultrassônico para detecção de presença.  
+O sistema autentica usuários através de um backend remoto via HTTP, controla o acesso físico por servo motor, fornece feedback visual com LEDs e display LCD e mantém comunicação contínua com a nuvem.
 
+O sistema é resiliente, com reconexão automática de Wi‑Fi e comportamento seguro quando offline.
 
-🧠 Arquitetura
-ESP32 → HTTP POST → Backend (Docker) → Logs
+---
 
-+ Interface visual (LCD)
-+ Atuação física (Servo)
+## 🚀 Funcionalidades
 
+- ✅ Detecção inteligente de presença (ultrassônico com filtro e estabilidade)
+- ✅ Autenticação via RFID com validação no backend
+- ✅ Controle de acesso físico (servo motor)
+- ✅ Interface com usuário (display LCD 1602)
+- ✅ Feedback visual com LEDs RGB (NeoPixel)
+- ✅ Envio de dados via HTTP (JSON)
+- ✅ Heartbeat para monitoramento do dispositivo
+- ✅ Reconexão automática de Wi‑Fi
+- ✅ Bloqueio de leitura sem conexão
 
-🔌 Hardware Utilizado
+---
 
-ESP32‑C3 Mini
-Módulo RFID RC522
-Sensor ultrassônico HC-SR04
-Servo motor SG90
-Display LCD 1602 (I2C)
-Fonte de alimentação 5V
+## 🧠 Arquitetura
 
+```
+ESP32 → HTTP POST → Backend → Autorização
+       ↘ Heartbeat → Monitoramento
+```
 
- 🔌 Conexões dos Pinos
+---
+
+## 🔌 Hardware Utilizado
+
+- ESP32‑C3 Mini  
+- Módulo RFID RC522  
+- Sensor ultrassônico HC-SR04  
+- Servo motor SG90  
+- Display LCD 1602 (I2C)  
+- LED RGB (NeoPixel - 8 LEDs)  
+- Fonte de alimentação 5V  
+
+---
+
+## 🔌 Conexões dos Pinos
 
 | Componente | Pino ESP32 |
 |-----------|-----------|
@@ -44,59 +58,165 @@ Fonte de alimentação 5V
 | LCD SDA   | GPIO8     |
 | LCD SCL   | GPIO9     |
 | Servo     | GPIO1     |
+| LED STRIP | GPIO3     |
 
-🌐 Comunicação com Cloud
+---
 
-Envio de dados via HTTP POST
-Formato JSON:
+## 🌐 Comunicação com Cloud
 
-JSON{  "uid": "29a08159",  "status": "LIBERADO"}Mostrar mais linhas
+### 🔹 Validação de Acesso
 
-🐳 Backend (Docker)
-O backend é responsável por:
+**POST** `/api/access/validate`
 
-Receber logs via /log
-Exibir logs via /logs
+```json
+{
+  "rfidTag": "ID_tag",
+  "deviceToken": "acess_name_arduino"
+}
+```
 
-🔹 Executar com Docker
-Shelldocker build -t rfid-app .docker run -p 3000:3000 rfid-appMostrar mais linhas
+Resposta:
 
-📊 Visualização
-Acesse:
-http://localhost:3000/logs
+```json
+{
+  "authorized": true
+}
+```
 
-Para ver os acessos em tempo real.
+---
 
-⚙️ Configuração do ESP32
-No código Arduino, configure:
-C++const char* ssid = "SEU_WIFI";const char* password = "SENHA";const char* apiUrl = "http://SEU_SERVIDOR:3000/log";Mostrar mais linhas
+### 🔹 Heartbeat
 
-📈 Fluxo do Sistema
+**POST** `/api/aparelhos/ping`
 
-Sensor detecta presença
-LCD exibe "Aproxime o cartão"
-RFID lê cartão
-Sistema valida acesso
-Servo abre/fecha
-Evento é enviado para o backend
+```json
+{
+  "deviceToken": "acess_name_arduino"
+}
+```
 
+---
 
-🛠️ Tecnologias Utilizadas
+## 📈 Fluxo do Sistema
 
-ESP32 (C++)
-Node.js (Express)
-Docker
-HTTP / REST
-I2C, SPI, PWM
+1. Sensor detecta presença  
+2. LCD exibe instrução  
+3. RFID lê cartão  
+4. ESP envia UID ao backend  
+5. Backend valida acesso  
+6. Sistema executa ação  
+7. ESP envia heartbeat  
 
+---
 
-💡 Melhorias Futuras
+## 🧠 Inteligência do Sistema
 
-Dashboard com gráficos
-Banco de dados persistente (MongoDB/PostgreSQL)
-Autenticação de usuários
-Integração com AWS (Terraform)
+### 🔹 Ultrassônico
 
+- Filtro por média de múltiplas leituras
+- Leitura em intervalos (~200ms)
+- Histerese (entrada ≤ 15cm / saída ≥ 20cm)
+- Tolerância temporal (~1.5s)
 
-👨‍💻 Autor
-Projeto desenvolvido como parte de estudo de sistemas embarcados, IoT e computação em nuvem.
+→ evita ruído e oscilações
+
+---
+
+### 🔹 RFID
+
+- UID padronizado (hex minúsculo com zero)
+- Validação feita no backend
+- Evita decisões locais
+
+---
+
+### 🔹 Wi‑Fi
+
+- Reconexão automática controlada
+- Evita múltiplas tentativas simultâneas
+- Reset de estado antes de reconectar
+
+---
+
+## ⚙️ Configuração do ESP32
+
+```cpp
+const char* ssid = "SEU_WIFI";
+const char* password = "SENHA";
+
+const char* validateUrl = "https://SEU_BACKEND/api/access/validate";
+const char* pingUrl = "https://SEU_BACKEND/api/aparelhos/ping";
+
+const char* deviceToken = "acess_name_arduino";
+```
+
+---
+
+## 📊 Interface do Usuário (LCD)
+
+```
+Sem conexao
+Reconectando
+```
+
+```
+Aproxime o
+cartao
+```
+
+```
+Lendo cartao
+Aguarde
+```
+
+```
+Acesso liberado
+```
+
+```
+Acesso negado
+```
+
+---
+
+## 💡 Feedback Visual (LED)
+
+| Situação | Cor |
+|--------|-----|
+| Aguardando | OFF |
+| Acesso liberado | Verde |
+| Acesso negado | Vermelho |
+
+---
+
+## 🛠 Tecnologias Utilizadas
+
+- ESP32 (C++)  
+- HTTP / REST  
+- JSON  
+- Node.js (backend)  
+- Docker  
+- I2C, SPI e PWM  
+
+---
+
+## 🔒 Segurança
+
+- Validação centralizada no backend  
+- Identificação por deviceToken  
+- Bloqueio offline  
+
+---
+
+## 💡 Melhorias Futuras
+
+- Dashboard com gráficos  
+- Banco de dados persistente  
+- Autenticação segura (API Key / JWT)  
+- Modo offline inteligente  
+
+---
+
+## 👨‍💻 Autor
+
+Projeto desenvolvido como estudo de sistemas embarcados, IoT e integração com backend.
