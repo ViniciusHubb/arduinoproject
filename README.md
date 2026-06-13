@@ -21,10 +21,10 @@
 
 ## 🔗 Links do Projeto
 
-- 🔹 Repositório Backend: *([adicionar link](https://github.com/diogocoding/testiot-development-backc-))*
-- 🔹 Repositório Frontend: *([adicionar link](https://github.com/diogocoding/testiot-development-front))*
-- 🔹 Apresentação (slides + PDF): *(em breve)*
-- 🔹 Sistema em funcionamento / vídeo demo: *(em breve)*
+- 🔹 Repositório Backend: *([link Github](https://github.com/diogocoding/testiot-development-backc-))*
+- 🔹 Repositório Frontend: *([link Github](https://github.com/diogocoding/testiot-development-front))*
+- 🔹 Apresentação (slides + PDF): *([lnk Drive](https://drive.google.com/file/d/1W699Z8z-e3yq0zQTNpNe1JE-uyFwcGhd/view?usp=drivesdk))*
+- 🔹 Sistema em funcionamento / vídeo demo: *([link Youtube](https://youtu.be/LUzZ4fO3L3g?is=I-gzdclqA_iyzZeY))*
 - 🔹 Dashboard / Backend: ocultado
 
 ---
