@@ -49,6 +49,11 @@ const unsigned long tempoPresenca = 1500;
 #define RST_PIN 2
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
+// ===== ANTI RELEITURA RFID =====
+String ultimoUID = "";
+unsigned long ultimaLeituraRFID = 0;
+const unsigned long intervaloBloqueioRFID = 30000;
+
 // ===== SERVO =====
 #define SERVO_PIN 1
 Servo porta;
@@ -87,15 +92,12 @@ void ledsOff() {
 
 // ===== WIFI =====
 void verificarWiFi() {
-
   wl_status_t status = WiFi.status();
 
   if (status == WL_CONNECTED) return;
 
   if (status == WL_CONNECT_FAILED || status == WL_DISCONNECTED) {
-
     if (millis() - ultimoWifiCheck >= intervaloWifi) {
-
       Serial.println("Reconectando WiFi...");
 
       WiFi.disconnect(true);
@@ -116,7 +118,8 @@ void enviarHeartbeat() {
   http.begin(pingUrl);
   http.addHeader("Content-Type", "application/json");
 
-  String body = "{\"deviceToken\":\"ESP32-001\"}";
+  String body = "{\"deviceToken\":\"" + String(deviceToken) + "\"}";
+
   http.POST(body);
   http.end();
 }
@@ -140,7 +143,6 @@ void setup() {
   porta.attach(SERVO_PIN, 500, 2400);
   porta.write(0);
 
-  // LED
   strip.begin();
   strip.show();
   ledsOff();
@@ -152,7 +154,6 @@ void setup() {
 
 // ===== LOOP =====
 void loop() {
-
   verificarWiFi();
 
   if (millis() - ultimoPing >= intervaloPing) {
@@ -160,25 +161,21 @@ void loop() {
     ultimoPing = millis();
   }
 
-  // ===== MOSTRANDO RESULTADO =====
   if (exibindoResultado) {
     if (millis() - tempoResultado >= duracaoResultado) {
-
       exibindoResultado = false;
       porta.write(0);
       ledsOff();
 
       lcd.clear();
       lcd.print("Aproxime o");
-      lcd.setCursor(0,1);
+      lcd.setCursor(0, 1);
       lcd.print("cartao");
     }
     return;
   }
 
-  // ===== ULTRASSÔNICO =====
   if (millis() - ultimoUltrassonico >= intervaloUltra) {
-
     ultimoUltrassonico = millis();
 
     float leitura = medirDistancia();
@@ -198,7 +195,6 @@ void loop() {
     Serial.print("Dist filtrada: ");
     Serial.println(distanciaFiltrada);
 
-    // ===== HISTERese =====
     if (!dentroZona && distanciaFiltrada <= 15) {
       dentroZona = true;
       ultimaPresenca = millis();
@@ -215,9 +211,7 @@ void loop() {
 
   bool presencaAtiva = (millis() - ultimaPresenca < tempoPresenca);
 
-  // ===== PRESENÇA =====
   if (presencaAtiva) {
-
     if (!sistemaAtivo) {
       sistemaAtivo = true;
 
@@ -226,22 +220,20 @@ void loop() {
 
       if (WiFi.status() != WL_CONNECTED) {
         lcd.print("Sem conexao");
-        lcd.setCursor(0,1);
+        lcd.setCursor(0, 1);
         lcd.print("Reconectando");
       } else {
         lcd.print("Aproxime o");
-        lcd.setCursor(0,1);
+        lcd.setCursor(0, 1);
         lcd.print("cartao");
       }
     }
 
-    // bloqueia RFID sem WiFi
     if (WiFi.status() != WL_CONNECTED) return;
 
     tentarLerCartao();
 
   } else {
-
     if (sistemaAtivo) {
       sistemaAtivo = false;
       lcd.clear();
@@ -255,7 +247,6 @@ void loop() {
 
 // ===== ULTRASSÔNICO =====
 float medirDistancia() {
-
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
 
@@ -271,19 +262,18 @@ float medirDistancia() {
 
 // ===== BACKEND =====
 bool validarBackend(String uid) {
-
   if (WiFi.status() != WL_CONNECTED) return false;
 
   lcd.clear();
   lcd.print("Lendo cartao");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("Aguarde");
 
   HTTPClient http;
   http.begin(validateUrl);
   http.addHeader("Content-Type", "application/json");
 
-  String body = "{\"rfidTag\":\"" + uid + "\",\"deviceToken\":\"ESP32-001\"}";
+  String body = "{\"rfidTag\":\"" + uid + "\",\"deviceToken\":\"" + String(deviceToken) + "\"}";
   int code = http.POST(body);
 
   if (code <= 0) {
@@ -307,7 +297,6 @@ bool validarBackend(String uid) {
 
 // ===== RFID =====
 void tentarLerCartao() {
-
   if (!mfrc522.PICC_IsNewCardPresent()) return;
   if (!mfrc522.PICC_ReadCardSerial()) return;
 
@@ -323,6 +312,24 @@ void tentarLerCartao() {
   Serial.print("UID: ");
   Serial.println(uid);
 
+  // ===== MELHORIA: BLOQUEIO DE LEITURA REPETIDA =====
+  if (uid == ultimoUID && millis() - ultimaLeituraRFID < intervaloBloqueioRFID) {
+    Serial.println("Leitura repetida ignorada");
+
+    lcd.clear();
+    lcd.print("Cartao ja lido");
+    lcd.setCursor(0, 1);
+    lcd.print("Aguarde...");
+
+    mfrc522.PICC_HaltA();
+    mfrc522.PCD_StopCrypto1();
+
+    return;
+  }
+
+  ultimoUID = uid;
+  ultimaLeituraRFID = millis();
+
   bool autorizado = validarBackend(uid);
 
   if (autorizado) {
@@ -333,6 +340,10 @@ void tentarLerCartao() {
 
   exibindoResultado = true;
   tempoResultado = millis();
+
+  // ===== MELHORIA: ENCERRA COMUNICACAO COM O CARTAO =====
+  mfrc522.PICC_HaltA();
+  mfrc522.PCD_StopCrypto1();
 }
 
 // ===== AÇÕES =====
